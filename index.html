@@ -9,49 +9,79 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-mini.png">
   <link rel="icon" sizes="192x192" href="./icons/app-icon-192.png">
   <link rel="icon" sizes="512x512" href="./icons/app-icon-512.png">
-  <link rel="manifest" href="./manifest.json?v=13">
+  <link rel="manifest" href="./manifest.json?v=14">
   <meta name="theme-color" content="#0d6efd">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <style>
-    html,body{margin:0;height:100%;display:flex;align-items:center;justify-content:center;font-family:sans-serif}
+    html,body{margin:0;height:100%;font-family:sans-serif;background:#fff}
+    .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px}
+    .logo{width:120px;height:120px;background:url(./icons/app-icon-192.png) no-repeat center/contain}
+    .title{font-size:20px;font-weight:700}
+    .btn{padding:12px 16px;border:0;border-radius:10px;font-size:16px;cursor:pointer}
+    .primary{background:#0d6efd;color:#fff}
+    .ghost{background:#f1f3f5}
+    .hint{font-size:13px;color:#666;text-align:center;line-height:1.4}
   </style>
 </head>
 <body>
-  <div>CheckMake PRO-Mini 로딩 중…</div>
+  <div class="wrap">
+    <div class="logo" aria-hidden="true"></div>
+    <div class="title">CheckMake PRO-Mini</div>
+    <button id="installBtn" class="btn primary" style="display:none;">홈 화면에 추가</button>
+    <button id="openBtn" class="btn ghost">앱 열기</button>
+    <div id="msg" class="hint">설치 버튼이 안 보이면, 우측 상단 메뉴(⋮) → “홈 화면에 추가”를 눌러주세요.</div>
+  </div>
 
   <script>
     const APP_URL = "https://script.google.com/macros/s/AKfycbxWvtu1JthTxBU8_X8UzTYdOwJBWndV1AC6MvEYRrGntP25QKts_f2oxlG7xcJ6-JVacA/exec";
 
-    // 설치 아이콘(standalone)으로 실행되면 바로 본 앱으로
+    // 설치 모드면 바로 본 앱으로
     if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
       location.replace(APP_URL);
-    } else {
-      // 1) 서비스워커 즉시 등록
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(()=>{});
-
-        // 2) SW가 현재 페이지를 '제어'하면 이동
-        function moveNow(){ if (!window.__moved){ window.__moved = true; location.replace(APP_URL); } }
-
-        // a) 이미 컨트롤 중이면 즉시 이동
-        if (navigator.serviceWorker.controller) {
-          moveNow();
-        } else {
-          // b) 컨트롤러가 생기는 순간까지 대기
-          navigator.serviceWorker.ready.then(() => {
-            // ready 후에도 controller 없을 수 있어 controllerchange까지 리슨
-            if (navigator.serviceWorker.controller) moveNow();
-          });
-          navigator.serviceWorker.addEventListener('controllerchange', () => moveNow());
-          // c) 모든 게 지연될 때를 대비한 6초 안전 타임아웃
-          setTimeout(() => moveNow(), 6000);
-        }
-      } else {
-        // SW 미지원 환경은 즉시 이동
-        location.replace(APP_URL);
-      }
     }
+
+    // SW 즉시 등록
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+
+    // beforeinstallprompt 이벤트 잡아서 버튼으로 제어
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+    const openBtn = document.getElementById('openBtn');
+    const msg = document.getElementById('msg');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();              // 브라우저 자동 배너 막고
+      deferredPrompt = e;              // 나중에 우리가 호출
+      installBtn.style.display = 'inline-block';
+      msg.textContent = "아래 ‘홈 화면에 추가’를 눌러 설치해주세요.";
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      installBtn.disabled = true;
+      try {
+        await deferredPrompt.prompt();         // 사용자 제스처로 설치 팝업 표시
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;                 // 한 번만 사용 가능
+        if (outcome === 'accepted') {
+          // 설치가 되면 아이콘으로 실행될 테니 여기선 대기
+          msg.textContent = "설치가 완료되면 홈 화면 아이콘으로 실행됩니다.";
+        } else {
+          msg.textContent = "설치를 취소했습니다. 나중에 메뉴(⋮) → ‘홈 화면에 추가’를 눌러주세요.";
+          installBtn.disabled = false;
+        }
+      } catch (_) {
+        installBtn.disabled = false;
+      }
+    });
+
+    // 앱 열기(리다이렉트)
+    openBtn.addEventListener('click', () => {
+      location.replace(APP_URL);
+    });
   </script>
 </body>
 </html>
