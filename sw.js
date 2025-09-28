@@ -1,9 +1,25 @@
-// 최소 SW: 설치 신호 + 현재 탭 제어 + 얕은 fetch 패스스루
-self.addEventListener('install', (e) => self.skipWaiting());
-self.addEventListener('activate', (e) => self.clients.claim());
+// 최소 SW: 설치 신호 + 현재 탭 제어 + 얕은 캐시(안정성)
+const CACHE = 'cm-mini-v1';
+const ASSETS = [
+  './',
+  './manifest.json',
+  './icons/app-icon-192.png',
+  './icons/app-icon-256.png',
+  './icons/app-icon-512.png',
+  './icons/apple-touch-icon-mini.png'
+];
 
-// 일부 크롬/런처는 fetch 핸들러가 있어야 '설치 가능'로 판단하기도 함
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(self.clients.claim());
+});
+
 self.addEventListener('fetch', (event) => {
-  // 그대로 네트워크로 전달 (캐싱 안 함)
-  event.respondWith(fetch(event.request).catch(() => fetch(event.request)));
+  // 캐시 우선, 실패 시 네트워크(매우 얕게만)
+  event.respondWith(
+    caches.match(event.request).then(r => r || fetch(event.request))
+  );
 });
