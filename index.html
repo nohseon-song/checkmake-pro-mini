@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CheckMake PRO-Mini</title>
 
-  <!-- 아이콘 & 매니페스트 (절대경로로 명시) -->
-  <link rel="apple-touch-icon" sizes="180x180" href="https://lh3.googleusercontent.com/d/1GQ725j2csPRw1ZF_rL_W1oaiACMgVrpX=s180">
-  <link rel="icon" sizes="192x192" href="https://lh3.googleusercontent.com/d/1XV7e96KuKIOW9lv9476NN-dXtfDfCl1q=s192">
-  <link rel="icon" sizes="512x512" href="https://lh3.googleusercontent.com/d/17XEHa2FqpvpFrApdZ0JQoJajeYzNAj6q=s512">
-  <link rel="manifest" href="/checkmake-pro-mini/manifest.json">
+  <!-- 같은 오리진 아이콘 + 매니페스트 -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-mini.png">
+  <link rel="icon" sizes="192x192" href="./icons/app-icon-192.png">
+  <link rel="icon" sizes="512x512" href="./icons/app-icon-512.png">
+  <link rel="manifest" href="./manifest.json?v=13">
   <meta name="theme-color" content="#0d6efd">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,19 +23,30 @@
   <script>
     const APP_URL = "https://script.google.com/macros/s/AKfycbxWvtu1JthTxBU8_X8UzTYdOwJBWndV1AC6MvEYRrGntP25QKts_f2oxlG7xcJ6-JVacA/exec";
 
-    // 설치 아이콘(standalone)으로 실행된 경우: 즉시 본 앱으로
+    // 설치 아이콘(standalone)으로 실행되면 바로 본 앱으로
     if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
       location.replace(APP_URL);
     } else {
-      // 1) 서비스워커 즉시 등록(로드 이벤트 기다리지 않음)
+      // 1) 서비스워커 즉시 등록
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/checkmake-pro-mini/sw.js').catch(()=>{});
-        // 2) SW가 활성(ready)되면 그때 이동 → A2HS 준비 시간 확보
-        navigator.serviceWorker.ready.then(() => {
-          setTimeout(() => location.replace(APP_URL), 400); // 약간의 여유
-        });
-        // 3) 혹시 ready가 오래 걸려도 5초 뒤에는 강제 이동 (안정성)
-        setTimeout(() => { if (!window.__moved) location.replace(APP_URL); }, 5000);
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+        // 2) SW가 현재 페이지를 '제어'하면 이동
+        function moveNow(){ if (!window.__moved){ window.__moved = true; location.replace(APP_URL); } }
+
+        // a) 이미 컨트롤 중이면 즉시 이동
+        if (navigator.serviceWorker.controller) {
+          moveNow();
+        } else {
+          // b) 컨트롤러가 생기는 순간까지 대기
+          navigator.serviceWorker.ready.then(() => {
+            // ready 후에도 controller 없을 수 있어 controllerchange까지 리슨
+            if (navigator.serviceWorker.controller) moveNow();
+          });
+          navigator.serviceWorker.addEventListener('controllerchange', () => moveNow());
+          // c) 모든 게 지연될 때를 대비한 6초 안전 타임아웃
+          setTimeout(() => moveNow(), 6000);
+        }
       } else {
         // SW 미지원 환경은 즉시 이동
         location.replace(APP_URL);
