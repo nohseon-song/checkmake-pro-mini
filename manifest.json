@@ -1,0 +1,15 @@
+{
+  "name": "CheckMake PRO-Mini",
+  "short_name": "CM PRO-Mini",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6efd",
+  "icons": [
+    { "src": "https://lh3.googleusercontent.com/d/1XV7e96KuKIOW9lv9476NN-dXtfDfCl1q=s192", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "https://lh3.googleusercontent.com/d/17XEHa2FqpvpFrApdZ0JQoJajeYzNAj6q=s256", "sizes": "256x256", "purpose": "any maskable" },
+    { "src": "https://lh3.googleusercontent.com/d/17XEHa2FqpvpFrApdZ0JQoJajeYzNAj6q=s512", "sizes": "512x512", "purpose": "any maskable" },
+    { "src": "https://lh3.googleusercontent.com/d/1GQ725j2csPRw1ZF_rL_W1oaiACMgVrpX=s180", "sizes": "180x180", "purpose": "any" }
+  ]
+}
